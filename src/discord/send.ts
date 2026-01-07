@@ -28,6 +28,7 @@ import { loadWebMedia, loadWebMediaRaw } from "../web/media.js";
 import { normalizeDiscordToken } from "./token.js";
 
 const DISCORD_TEXT_LIMIT = 2000;
+const DISCORD_CHUNK_DELAY_MS = 1000; // Delay between multi-chunk messages to avoid rate limits
 const DISCORD_MAX_STICKERS = 3;
 const DISCORD_MAX_EMOJI_BYTES = 256 * 1024;
 const DISCORD_MAX_STICKER_BYTES = 512 * 1024;
@@ -393,6 +394,9 @@ async function sendDiscordText(
   let last: { id: string; channel_id: string } | null = null;
   let isFirst = true;
   for (const chunk of chunks) {
+    if (!isFirst) {
+      await new Promise((resolve) => setTimeout(resolve, DISCORD_CHUNK_DELAY_MS));
+    }
     last = (await rest.post(Routes.channelMessages(channelId), {
       body: {
         content: chunk,
