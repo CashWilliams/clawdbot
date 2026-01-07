@@ -1,0 +1,4 @@
+/target/
+/src-tauri/target/
+/src-tauri/.tauri/
+/src-tauri/node_modules/

@@ -32,6 +32,7 @@ import type {
   TelegramForm,
 } from "./ui-types";
 import { renderChat } from "./views/chat";
+import { renderCanvas } from "./views/canvas";
 import { renderConfig } from "./views/config";
 import { renderConnections } from "./views/connections";
 import { renderCron } from "./views/cron";
@@ -39,8 +40,10 @@ import { renderDebug } from "./views/debug";
 import { renderInstances } from "./views/instances";
 import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
+import { renderPermissions } from "./views/permissions";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
+import { renderVoice } from "./views/voice";
 import {
   loadProviders,
   updateDiscordForm,
@@ -81,6 +84,10 @@ export type AppViewState = {
   hello: GatewayHelloOk | null;
   lastError: string | null;
   eventLog: EventLogEntry[];
+  tauriAvailable: boolean;
+  gatewayServiceStatus: string | null;
+  gatewayServiceBusy: boolean;
+  gatewayServiceError: string | null;
   sessionKey: string;
   chatLoading: boolean;
   chatSending: boolean;
@@ -155,6 +162,12 @@ export type AppViewState = {
   skillsFilter: string;
   skillEdits: Record<string, string>;
   skillsBusyKey: string | null;
+  voiceWakeLoading: boolean;
+  voiceWakeSaving: boolean;
+  voiceWakeTriggers: string[];
+  voiceWakeInput: string;
+  voiceWakeStatus: string | null;
+  voiceWakeError: string | null;
   debugLoading: boolean;
   debugStatus: StatusSummary | null;
   debugHealth: HealthSnapshot | null;
@@ -170,6 +183,13 @@ export type AppViewState = {
   setTheme: (theme: ThemeMode, context?: ThemeTransitionContext) => void;
   applySettings: (next: UiSettings) => void;
   loadOverview: () => Promise<void>;
+  refreshGatewayServiceStatus: () => Promise<void>;
+  handleGatewayServiceAction: (action: "start" | "stop" | "restart") => Promise<void>;
+  handleVoiceWakeInput: (next: string) => void;
+  addVoiceWakeTrigger: () => void;
+  removeVoiceWakeTrigger: (trigger: string) => void;
+  refreshVoiceWake: () => Promise<void>;
+  saveVoiceWake: () => Promise<void>;
   loadCron: () => Promise<void>;
   handleWhatsAppStart: (force: boolean) => Promise<void>;
   handleWhatsAppWait: () => Promise<void>;
@@ -233,6 +253,10 @@ export function renderApp(state: AppViewState) {
               settings: state.settings,
               password: state.password,
               lastError: state.lastError,
+              tauriAvailable: state.tauriAvailable,
+              gatewayServiceStatus: state.gatewayServiceStatus,
+              gatewayServiceBusy: state.gatewayServiceBusy,
+              gatewayServiceError: state.gatewayServiceError,
               presenceCount,
               sessionsCount,
               cronEnabled: state.cronStatus?.enabled ?? null,
@@ -247,6 +271,15 @@ export function renderApp(state: AppViewState) {
                 state.applySettings({ ...state.settings, sessionKey: next });
               },
               onRefresh: () => state.loadOverview(),
+              onGatewayServiceRefresh: () => state.refreshGatewayServiceStatus(),
+              onGatewayServiceAction: (action) => state.handleGatewayServiceAction(action),
+            })
+          : nothing}
+
+        ${state.tab === "canvas"
+          ? renderCanvas({
+              connected: state.connected,
+              gatewayUrl: state.settings.gatewayUrl,
             })
           : nothing}
 
@@ -294,6 +327,29 @@ export function renderApp(state: AppViewState) {
               onSignalSave: () => state.handleSignalSave(),
               onIMessageChange: (patch) => updateIMessageForm(state, patch),
               onIMessageSave: () => state.handleIMessageSave(),
+            })
+          : nothing}
+
+        ${state.tab === "permissions"
+          ? renderPermissions({
+              onRefresh: () => state.loadOverview(),
+            })
+          : nothing}
+
+        ${state.tab === "voice"
+          ? renderVoice({
+              connected: state.connected,
+              loading: state.voiceWakeLoading,
+              saving: state.voiceWakeSaving,
+              triggers: state.voiceWakeTriggers,
+              input: state.voiceWakeInput,
+              status: state.voiceWakeStatus,
+              error: state.voiceWakeError,
+              onInputChange: (next) => state.handleVoiceWakeInput(next),
+              onAddTrigger: () => state.addVoiceWakeTrigger(),
+              onRemoveTrigger: (trigger) => state.removeVoiceWakeTrigger(trigger),
+              onRefresh: () => state.refreshVoiceWake(),
+              onSave: () => state.saveVoiceWake(),
             })
           : nothing}
 

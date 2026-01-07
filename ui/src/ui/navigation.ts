@@ -2,14 +2,15 @@ export const TAB_GROUPS = [
   { label: "Chat", tabs: ["chat"] },
   {
     label: "Control",
-    tabs: ["overview", "connections", "instances", "sessions", "cron"],
+    tabs: ["overview", "canvas", "connections", "instances", "sessions", "cron"],
   },
   { label: "Agent", tabs: ["skills", "nodes"] },
-  { label: "Settings", tabs: ["config", "debug"] },
+  { label: "Settings", tabs: ["config", "permissions", "voice", "debug"] },
 ] as const;
 
 export type Tab =
   | "overview"
+  | "canvas"
   | "connections"
   | "instances"
   | "sessions"
@@ -18,10 +19,13 @@ export type Tab =
   | "nodes"
   | "chat"
   | "config"
+  | "permissions"
+  | "voice"
   | "debug";
 
 const TAB_PATHS: Record<Tab, string> = {
   overview: "/overview",
+  canvas: "/canvas",
   connections: "/connections",
   instances: "/instances",
   sessions: "/sessions",
@@ -30,6 +34,8 @@ const TAB_PATHS: Record<Tab, string> = {
   nodes: "/nodes",
   chat: "/chat",
   config: "/config",
+  permissions: "/permissions",
+  voice: "/voice",
   debug: "/debug",
 };
 
@@ -100,6 +106,8 @@ export function titleForTab(tab: Tab) {
   switch (tab) {
     case "overview":
       return "Overview";
+    case "canvas":
+      return "Canvas";
     case "connections":
       return "Connections";
     case "instances":
@@ -118,6 +126,10 @@ export function titleForTab(tab: Tab) {
       return "Config";
     case "debug":
       return "Debug";
+    case "permissions":
+      return "Permissions";
+    case "voice":
+      return "Voice";
     default:
       return "Control";
   }
@@ -127,6 +139,8 @@ export function subtitleForTab(tab: Tab) {
   switch (tab) {
     case "overview":
       return "Gateway status, entry points, and a fast health read.";
+    case "canvas":
+      return "View the A2UI canvas hosted by the gateway.";
     case "connections":
       return "Link providers and keep transport settings in sync.";
     case "instances":
@@ -145,6 +159,10 @@ export function subtitleForTab(tab: Tab) {
       return "Edit ~/.clawdbot/clawdbot.json safely.";
     case "debug":
       return "Gateway snapshots, events, and manual RPC calls.";
+    case "permissions":
+      return "Grant desktop permissions and verify Wayland access.";
+    case "voice":
+      return "Voice wake triggers and talk mode controls.";
     default:
       return "";
   }

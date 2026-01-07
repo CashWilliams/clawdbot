@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Clawdbot
+Comment=Start Clawdbot at login
+Exec=clawdbot
+Icon=clawdbot
+Categories=Utility;
+Terminal=false
+X-GNOME-Autostart-enabled=true

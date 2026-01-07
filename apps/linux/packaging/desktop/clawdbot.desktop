@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Clawdbot
+Comment=Clawdbot desktop controller
+Exec=clawdbot
+Icon=clawdbot
+Categories=Utility;
+Terminal=false
+StartupNotify=true

@@ -1,4 +1,4 @@
-import { html } from "lit";
+import { html, nothing } from "lit";
 
 import type { GatewayHelloOk } from "../gateway";
 import { formatAgo, formatDurationMs } from "../format";
@@ -11,6 +11,10 @@ export type OverviewProps = {
   settings: UiSettings;
   password: string;
   lastError: string | null;
+  tauriAvailable: boolean;
+  gatewayServiceStatus: string | null;
+  gatewayServiceBusy: boolean;
+  gatewayServiceError: string | null;
   presenceCount: number;
   sessionsCount: number | null;
   cronEnabled: boolean | null;
@@ -20,6 +24,8 @@ export type OverviewProps = {
   onPasswordChange: (next: string) => void;
   onSessionKeyChange: (next: string) => void;
   onRefresh: () => void;
+  onGatewayServiceRefresh: () => void;
+  onGatewayServiceAction: (action: "start" | "stop" | "restart") => void;
 };
 
 export function renderOverview(props: OverviewProps) {
@@ -169,5 +175,53 @@ export function renderOverview(props: OverviewProps) {
         </div>
       </div>
     </section>
+
+    ${props.tauriAvailable
+      ? html`<section class="card" style="margin-top: 18px;">
+          <div class="card-title">Linux Desktop</div>
+          <div class="card-sub">Manage the local gateway systemd user unit.</div>
+          <div class="row" style="margin-top: 12px; gap: 12px;">
+            <div class="pill">
+              <span>Status</span>
+              <span class="mono">
+                ${props.gatewayServiceStatus ?? "unknown"}
+              </span>
+            </div>
+            <button
+              class="btn"
+              ?disabled=${props.gatewayServiceBusy}
+              @click=${() => props.onGatewayServiceRefresh()}
+            >
+              ${props.gatewayServiceBusy ? "Refreshing…" : "Refresh"}
+            </button>
+            <button
+              class="btn"
+              ?disabled=${props.gatewayServiceBusy}
+              @click=${() => props.onGatewayServiceAction("start")}
+            >
+              Start
+            </button>
+            <button
+              class="btn"
+              ?disabled=${props.gatewayServiceBusy}
+              @click=${() => props.onGatewayServiceAction("stop")}
+            >
+              Stop
+            </button>
+            <button
+              class="btn"
+              ?disabled=${props.gatewayServiceBusy}
+              @click=${() => props.onGatewayServiceAction("restart")}
+            >
+              Restart
+            </button>
+          </div>
+          ${props.gatewayServiceError
+            ? html`<div class="callout danger" style="margin-top: 12px;">
+                ${props.gatewayServiceError}
+              </div>`
+            : nothing}
+        </section>`
+      : nothing}
   `;
 }

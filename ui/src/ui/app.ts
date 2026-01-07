@@ -21,6 +21,7 @@ import {
   startThemeTransition,
   type ThemeTransitionContext,
 } from "./theme-transition";
+import { hasTauri } from "./tauri";
 import type {
   ConfigSnapshot,
   ConfigUiHints,
@@ -77,6 +78,11 @@ import {
   loadSkills,
 } from "./controllers/skills";
 import { loadDebug } from "./controllers/debug";
+import {
+  refreshGatewayServiceStatus,
+  runGatewayServiceAction,
+} from "./controllers/desktop";
+import { loadVoiceWake, saveVoiceWake } from "./controllers/voicewake";
 
 type EventLogEntry = {
   ts: number;
@@ -178,6 +184,10 @@ export class ClawdbotApp extends LitElement {
   @state() hello: GatewayHelloOk | null = null;
   @state() lastError: string | null = null;
   @state() eventLog: EventLogEntry[] = [];
+  @state() tauriAvailable = hasTauri();
+  @state() gatewayServiceStatus: string | null = null;
+  @state() gatewayServiceBusy = false;
+  @state() gatewayServiceError: string | null = null;
   private eventLogBuffer: EventLogEntry[] = [];
 
   @state() sessionKey = this.settings.sessionKey;
@@ -329,6 +339,13 @@ export class ClawdbotApp extends LitElement {
   @state() skillsFilter = "";
   @state() skillEdits: Record<string, string> = {};
   @state() skillsBusyKey: string | null = null;
+
+  @state() voiceWakeLoading = false;
+  @state() voiceWakeSaving = false;
+  @state() voiceWakeTriggers: string[] = [];
+  @state() voiceWakeInput = "";
+  @state() voiceWakeStatus: string | null = null;
+  @state() voiceWakeError: string | null = null;
 
   @state() debugLoading = false;
   @state() debugStatus: StatusSummary | null = null;
@@ -634,6 +651,16 @@ export class ClawdbotApp extends LitElement {
       return;
     }
 
+    if (evt.event === "voicewake.changed") {
+      const payload = evt.payload as { triggers?: string[] } | undefined;
+      if (payload?.triggers && Array.isArray(payload.triggers)) {
+        this.voiceWakeTriggers = payload.triggers;
+        this.voiceWakeStatus = "Updated from gateway.";
+        this.voiceWakeError = null;
+      }
+      return;
+    }
+
     if (evt.event === "cron" && this.tab === "cron") {
       void this.loadCron();
     }
@@ -703,6 +730,7 @@ export class ClawdbotApp extends LitElement {
     if (this.tab === "cron") await this.loadCron();
     if (this.tab === "skills") await loadSkills(this);
     if (this.tab === "nodes") await loadNodes(this);
+    if (this.tab === "voice") await loadVoiceWake(this);
     if (this.tab === "chat") {
       await Promise.all([loadChatHistory(this), loadSessions(this)]);
       this.scheduleChatScroll(!this.chatHasAutoScrolled);
@@ -806,13 +834,48 @@ export class ClawdbotApp extends LitElement {
   }
 
   async loadOverview() {
-    await Promise.all([
+    const tasks = [
       loadProviders(this, false),
       loadPresence(this),
       loadSessions(this),
       loadCronStatus(this),
       loadDebug(this),
-    ]);
+    ];
+    if (this.tauriAvailable) tasks.push(refreshGatewayServiceStatus(this));
+    await Promise.all(tasks);
+  }
+
+  async refreshGatewayServiceStatus() {
+    await refreshGatewayServiceStatus(this);
+  }
+
+  async handleGatewayServiceAction(action: "start" | "stop" | "restart") {
+    await runGatewayServiceAction(this, action);
+  }
+
+  handleVoiceWakeInput(next: string) {
+    this.voiceWakeInput = next;
+  }
+
+  addVoiceWakeTrigger() {
+    const trimmed = this.voiceWakeInput.trim();
+    if (!trimmed) return;
+    if (!this.voiceWakeTriggers.includes(trimmed)) {
+      this.voiceWakeTriggers = [...this.voiceWakeTriggers, trimmed];
+    }
+    this.voiceWakeInput = "";
+  }
+
+  removeVoiceWakeTrigger(trigger: string) {
+    this.voiceWakeTriggers = this.voiceWakeTriggers.filter((t) => t !== trigger);
+  }
+
+  async refreshVoiceWake() {
+    await loadVoiceWake(this);
+  }
+
+  async saveVoiceWake() {
+    await saveVoiceWake(this);
   }
 
   private async loadConnections() {
